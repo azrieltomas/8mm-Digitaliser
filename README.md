@@ -25,6 +25,7 @@ The camera's trigger socket is only a 2.5 mm TRS connection:
 * Tip: Shutter
 * Ring: Focus
 * Sleeve: Ground
+
 By shorting T or R to S the camera will activate this function. With S connected to ground, T is "shorted" by enabling a 74HC126 tri-state buffer output. Otherwise the buffer is disabled and output in Hi-Z mode.
 
 #### Aligning Photographs
