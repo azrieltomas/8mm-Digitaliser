@@ -229,9 +229,18 @@ if __name__ == '__main__':
         shiftX, shiftY = detectSprocketPos(inputImg, horizontal=True, fileName=files, debugHist=False)
 
         # second attempt if failed with modified roi - sometimes happens with the header lettering
+        drawRect       = [0.15,0.25,0.1,0.55]
         if (shiftX + shiftY) == 0:
             print('Failed to detect sprockets, attempting second pass')
-            shiftX, shiftY = detectSprocketPos(inputImg, horizontal=True, roi=[0.15,0.25,0.1,0.55], fileName=files, debugHist=True)
+            shiftX, shiftY = detectSprocketPos(inputImg, horizontal=True, roi=drawRect, fileName=files, debugHist=True)
+
+        # if fail on second, output a debug image with the rectangle drawn over it to aid detection
+        if (shiftX + shiftY) == 0:
+            print('Failed to detect sprockets, outputting debug image')
+            dy,dx,dz       = img.shape
+            rectImage      = cv2.rectangle(inputImg,(drawRect[0]*dx, drawRect[2]*dy),(drawRect[1]*dx, drawRect[3]*dy), (0,0,255), 3)
+            cv2.imwrite('NOSHIFT_' + files,rectImage)
+
 
         # shift the image into its place
         outputImage    = shiftImg(inputImg,shiftX,shiftY)
@@ -249,11 +258,8 @@ if __name__ == '__main__':
             maxHeight   = outputImage.shape[0]
 
         # write out the result
-        # if no shift has occured, flag these for investigation
-        if (shiftX + shiftY) == 0: # no shift
-
-            cv2.imwrite('NOSHIFT_' + files,outputImage)
-        else:
+        # if no shift has occured, dont convert, these are handled upstream
+        if !((shiftX + shiftY) == 0): # no shift
             cv2.imwrite('out_' + files,outputImage)
 
     print('Max image height: ' + str(maxHeight))
