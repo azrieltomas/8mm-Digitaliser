@@ -4,7 +4,7 @@
 
 // timing doesnt need to be exact here
 // use digitalRead/Write and delay
-// allow one second per frame total for motor stepping & camera operation
+// allow at least one second per frame total for motor stepping & camera operation
 
 #define DEBUG           0
 
@@ -12,8 +12,8 @@
 #define STEP2_PIN       3   // MOTOR A2
 #define STEP3_PIN       4   // MOTOR B1
 #define STEP4_PIN       5   // MOTOR B2
-// #define STEP_FWD_PIN    6   // SWITCH - STEP MOTOR FORWARD
-// #define STEP_REV_PIN    7   // SWITCH - STEP MOTOR BACK
+#define STEP_FWD_PIN    6   // SWITCH - STEP MOTOR FORWARD
+#define STEP_REV_PIN    7   // SWITCH - STEP MOTOR BACK
 #define STEP_RUN_PIN    8   // SWITCH - MOTOR CONTINUOUS RUN
 #define STEP_HALT_PIN   9   // SWITCH - STOP MOTOR
 #define BUFFR_ON_PIN    10  // ACTIVE HIGH - TRIGGERS CAMERA BY ENABLING 74LS126
@@ -28,8 +28,8 @@ const uint8_t STEPS_PER_REV = 48; // steps per motor revolution
 const uint32_t DEBOUNCE_TIME = 250; // debounce timing for buttons (ms)
 
 // timers for switches
-// uint32_t timerFwdSwitch = 0;
-// uint32_t timerRevSwitch = 0;
+uint32_t timerFwdSwitch = 0;
+uint32_t timerRevSwitch = 0;
 uint32_t timerRunSwitch = 0;
 uint32_t timerHaltSwitch = 0;
 bool systemRunning = false; // control system for halt / run modes
@@ -63,8 +63,8 @@ void setup() {
     }
 
     // pin setups
-    // pinMode(STEP_FWD_PIN, INPUT);
-    // pinMode(STEP_REV_PIN, INPUT);
+    pinMode(STEP_FWD_PIN, INPUT);
+    pinMode(STEP_REV_PIN, INPUT);
     pinMode(STEP_RUN_PIN, INPUT);
     pinMode(STEP_HALT_PIN, INPUT);
     pinMode(BUFFR_ON_PIN, OUTPUT);
@@ -78,23 +78,24 @@ void setup() {
 
 void loop() {
     // read switch states
-    // uint8_t fwdPinState = digitalRead(STEP_FWD_PIN);
-    // uint8_t revPinState = digitalRead(STEP_REV_PIN);
+    uint8_t fwdPinState = digitalRead(STEP_FWD_PIN);
+    uint8_t revPinState = digitalRead(STEP_REV_PIN);
     uint8_t runPinState = digitalRead(STEP_RUN_PIN);
     uint8_t haltPinState = digitalRead(STEP_HALT_PIN);
 
-    // DEBUG_PRINT("fwdPinState", fwdPinState);
-    // DEBUG_PRINT("revPinState", revPinState);
+    DEBUG_PRINT("fwdPinState", fwdPinState);
+    DEBUG_PRINT("revPinState", revPinState);
     DEBUG_PRINT("runPinState", runPinState);
     DEBUG_PRINT("haltPinState", haltPinState);
     DEBUG_PRINT("systemRunning", systemRunning);
 
-    // if ((timerFwdSwitch == 0) & (fwdPinState == HIGH)) {
-    //     timerFwdSwitch = millis();
-    // }
-    // if ((timerRevSwitch == 0) & (revPinState == HIGH)) {
-    //     timerRevSwitch = millis();
-    // }
+    // handle switch with timer for pseudo-debouncing
+    if ((timerFwdSwitch == 0) & (fwdPinState == HIGH)) {
+        timerFwdSwitch = millis();
+    }
+    if ((timerRevSwitch == 0) & (revPinState == HIGH)) {
+        timerRevSwitch = millis();
+    }
     if ((timerRunSwitch == 0) & (runPinState == HIGH)) {
         timerRunSwitch = millis();
     }
@@ -103,15 +104,15 @@ void loop() {
     }
 
     if (!systemRunning) {
-        // system in standby mode waiting for input
-        // if ((timerFwdSwitch > 0) && ((millis() - timerFwdSwitch) > DEBOUNCE_TIME)) {
-        //     stepMotor(1); // step motor forward once
-        //     timerFwdSwitch = 0; // reset
-        // }
-        // if ((timerRevSwitch > 0) && ((millis() - timerRevSwitch) > DEBOUNCE_TIME)) {
-        //     stepMotor(-1); // step motor backwards once
-        //     timerRevSwitch = 0; // reset
-        // }
+        system in standby mode waiting for input
+        if ((timerFwdSwitch > 0) && ((millis() - timerFwdSwitch) > DEBOUNCE_TIME)) {
+            stepMotor(1); // step motor forward once
+            timerFwdSwitch = 0; // reset
+        }
+        if ((timerRevSwitch > 0) && ((millis() - timerRevSwitch) > DEBOUNCE_TIME)) {
+            stepMotor(-1); // step motor backwards once
+            timerRevSwitch = 0; // reset
+        }
         if ((timerRunSwitch > 0) && ((millis() - timerRunSwitch) > DEBOUNCE_TIME)) {
             // set autorun mode
             systemRunning = true;
@@ -134,6 +135,7 @@ void loop() {
         stepMotor(1);
     }
 
+    // outputting serial lines - pause to allow reading
     if (DEBUG) {
         delay(1000);
     }
