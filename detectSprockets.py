@@ -3,22 +3,24 @@ import numpy as np
 import time
 import sys
 import os
-import matplotlib.pyplot as plt # debug only
+import shutil
+from pathlib import Path
 
 ## simple sprocket detection algorithm
 ## returns the detected sprocket position
 ## relative to vertical scan center and left horizontal edge
-def detectSprocketPos(img, roi = [0.15,0.30,0.01,0.45],     # region-of-interest - set as small as possible
-                           thresholds = [0.5,0.2],          # edge thresholds; first one higher, second one lower
-                           filterSize = 25,                 # smoothing kernel - leave it untouched
-                           minSize = 0.05,                  # min. relative sprocket size to be expected - used for checks
-                           horizontal = False,              # if you want a simple horizontal alignment as well
-                           fileName = 'debug',               # filename of original image for debug outpu
-                           debugHist = False):             
-
-    ## inital preparations
-    #620x531: 93,217,5,239
+def detectSprocketPos(img,  roi,                             # region-of-interest - set as small as possible
+                            thresholds = [0.5,0.2],          # edge thresholds; first one higher, second one lower
+                            filterSize = 25,                 # smoothing kernel - leave it untouched
+                            minSize = 0.05,                  # min. relative sprocket size to be expected - used for checks
+                            horizontal = True,               # if you want a simple horizontal alignment as well
+                            fileName = 1,                    # ** pass the filename when debugging for the saved histogram
+                            debugHist = False):              # ** save the histogram if wanted
     
+    # The following code is taken almost entirely from https://github.com/cpixip/sprocket_detection
+    # Comments from this code have been left mostly as-is
+    # Modifications made for 8mm instead of Super 8 are denoted with **
+
     # get the size of the image     
     dy,dx,dz = img.shape
 
@@ -30,6 +32,7 @@ def detectSprocketPos(img, roi = [0.15,0.30,0.01,0.45],     # region-of-interest
     y1 = int(roi[3]*dy)        
 
     # cutting out the strip to work with
+    # ** Use a defined rectangle in only the top half of the image to find the first sprocket hole
     sprocketStrip = img[y0:y1,x0:x1,:]
 
     # now calculating the vertical sobel edges
@@ -39,27 +42,18 @@ def detectSprocketPos(img, roi = [0.15,0.30,0.01,0.45],     # region-of-interest
     # show up in the histogram
     histogram     = np.mean(sprocketEdges,axis=(1,2))
 
-    # we dont need the smoothed histogram - its detrimental in some cases because the film header
-    # contains letters that get puicked up by the algorithm
+    # ** Remove the smoothed histogram function
+    # ** Letters in the film header can throw this off
 
-    # debug - save histogram
+    # ** Debug function to save the histogram - requires matplotlib
     if debugHist:
-        outName = 'hist_' + fileName + '.png'
+        import matplotlib.pyplot as plt
+        outName = fileName + '_hist.png'
         plt.plot(histogram)
         plt.savefig(outName)
         plt.close()
 
-    # smoothing the histogram to make signal more stable.
-    # sigma==0 -> it is autocalculated
-    # smoothedHisto = cv2.GaussianBlur(histogram,(1,filterSize),0)
-
-    # debug - save histogram
-    # outName = 'smoothhist_' + datetime.now().strftime('%H%M%S.%f') + '.png'
-    # plt.plot(smoothedHisto)
-    # plt.savefig(outName)
-    # plt.close()
-
-    ## now analyzing the smoothed histogram
+    ## now analyzing the histogram
     
     # everything is relative to the detected maximum of the histogram
     # we only work in the region where the sprocket is expected
@@ -102,7 +96,7 @@ def detectSprocketPos(img, roi = [0.15,0.30,0.01,0.45],     # region-of-interest
     if (outerHigh-outerLow)<0.3*dy:
         searchCenter = (outerHigh+outerLow)//2
     else:
-        searchCenter = dy//3
+        searchCenter = dy//3 # ** change search centre to be in the top third of the image
 
     # searching sprocket borders from the inside of the sprocket.
     # For this, the above found potential center of the sprocket
@@ -193,7 +187,7 @@ def cropImage(img):
     x, y, w, h  = cv2.boundingRect(coords) # Find minimum spanning bounding box
     return img[y:y+h, x:x+w]
 
-## test routine if called as script
+## routine if called as script
 ## loops through all images in a folder of a specific type
 ## eg python3 detectSprocketPos.py tiff
 if __name__ == '__main__':
@@ -218,49 +212,84 @@ if __name__ == '__main__':
 
         # flip images if necessary
         if sys.argv[2] == 'flip':
-            inputImg = cv2.flip(inputImg, 1)
+            inputImg    = cv2.flip(inputImg, 1)
 
         # crop whitespace 
         # save the file when debugging the sprocket locations
         inputImg        = cropImage(inputImg)
-        #cv2.imwrite('crop_' + files,inputImg)
         
         # run sprocket detection routine
-        shiftX, shiftY = detectSprocketPos(inputImg, horizontal=True, fileName=files, debugHist=False)
+        # ROI is a rectangle: x0, x1, y0, y1
+        passCount       = 1
+        rectROI         = [0.15, 0.30, 0.01, 0.45]
+        shiftX, shiftY  = detectSprocketPos(inputImg, rectROI)
 
         # second attempt if failed with modified roi - sometimes happens with the header lettering
-        drawRect       = [0.15,0.25,0.1,0.55]
         if (shiftX + shiftY) == 0:
-            print('Failed to detect sprockets, attempting second pass')
-            shiftX, shiftY = detectSprocketPos(inputImg, horizontal=True, roi=drawRect, fileName=files, debugHist=True)
+            passCount += 1
+            rectROI         = [0.15, 0.25, 0.01, 0.55]
+            print('Failed to detect sprockets with standard ROIs, re-attempt: %d'%passCount)
+            shiftX, shiftY  = detectSprocketPos(inputImg, rectROI)
 
-        # if fail on second, output a debug image with the rectangle drawn over it to aid detection
+        # expand the ROI in the y-axis until it matches or fails completely
         if (shiftX + shiftY) == 0:
+            
+            roiLimits        = [0.10, 0.20, 0.00, 0.55]
+            roiPass          = [0.10, 0.20, 0.10, 0.30]
+            while (roiPass[2] >= roiLimits[2]) and (roiPass[3] <= roiPass[3]):
+                passCount += 1
+                print('Failed to detect sprockets with standard ROIs, re-attempt: %d'%passCount)
+                print(roiPass)
+                shiftX, shiftY  = detectSprocketPos(inputImg, roiPass)
+                if (shiftX < 0) or (shiftY < 0):
+                    print('Error: Detection shifted into negative values. Will not attempt again.')
+                    shiftX = 0 # set these to zero to be captured later as a failure
+                    shiftY = 0
+                    break
+                if (shiftX + shiftY) != 0:
+                    break
+                else:
+                    # adjust the ROI by a small amount continuously until something happens
+                    roiPass[2] = round(roiPass[2] - 0.02, 2)
+                    roiPass[3] = round(roiPass[3] + 0.02, 2)
+
+        # if fail on multiple, output a debug image with the rectangle drawn over it to aid detection
+        # also catch negative shifts
+        if ((shiftX + shiftY) == 0) or (shiftX < 0) or (shiftY < 0):
             print('Failed to detect sprockets, outputting debug image')
-            dy,dx,dz       = img.shape
-            rectImage      = cv2.rectangle(inputImg,(drawRect[0]*dx, drawRect[2]*dy),(drawRect[1]*dx, drawRect[3]*dy), (0,0,255), 3)
-            cv2.imwrite('NOSHIFT_' + files,rectImage)
+            dy,dx,dz       = inputImg.shape
+            drawPixel      = [round(rectROI[0]*dx), round(rectROI[2]*dy), round(rectROI[1]*dx), round(rectROI[3]*dy)]
+            rectImage      = cv2.rectangle(inputImg,(drawPixel[0], drawPixel[1]),(drawPixel[2], drawPixel[3]), (0,0,255), 3)
+            
+            # move failures to directory
+            try:
+                os.mkdir('FAILED')
+            except:
+                pass # ignore error
 
+            shiftX, shiftY = detectSprocketPos(inputImg, rectROI, fileName='FAILED/' + files, debugHist=True) # this is just to get the histogram
+            cv2.imwrite('FAILED/NOSHIFT_' + files,rectImage)
+            shutil.copy(files, 'FAILED/' + files) # this is just to help with comparisons
+        else:
+            # shift the image into its place
+            outputImage    = shiftImg(inputImg,shiftX,shiftY)
+            toc            = time.time()
 
-        # shift the image into its place
-        outputImage    = shiftImg(inputImg,shiftX,shiftY)
-        toc            = time.time()
+            # now output some test information
+            dy,dx,dz       = outputImage.shape
+            print('Sprocket-Detection in %3.1f msec, img-Size %d x %d'%((toc-tic)*1000,dx,dy))
+            print('Applied shifts: (%d,%d)'%(shiftX,shiftY))
 
-        # now output some test information
-        dy,dx,dz       = outputImage.shape
-        print('Sprocket-Detection in %3.1f msec, img-Size %d x %d'%((toc-tic)*1000,dx,dy))
-        print('Applied shifts: (%d,%d)'%(shiftX,shiftY))
+            # store largest image dimensions
+            if outputImage.shape[1] > maxWidth:
+                maxWidth    = outputImage.shape[1]
+            if outputImage.shape[0] > maxHeight:
+                maxHeight   = outputImage.shape[0]
 
-        # store largest image dimensions
-        if outputImage.shape[1] > maxWidth:
-            maxWidth    = outputImage.shape[1]
-        if outputImage.shape[0] > maxHeight:
-            maxHeight   = outputImage.shape[0]
-
-        # write out the result
-        # if no shift has occured, dont convert, these are handled upstream
-        if !((shiftX + shiftY) == 0): # no shift
-            cv2.imwrite('out_' + files,outputImage)
+            # write out the result
+            # include the pass count for checking later
+            outFileName = 'out_' + Path(files).stem + '_PASS' + str(passCount) + '.' + fileExtension
+            cv2.imwrite(outFileName, outputImage)
 
     print('Max image height: ' + str(maxHeight))
     print('Max image width: ' + str(maxWidth))
