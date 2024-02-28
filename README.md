@@ -14,7 +14,7 @@ This project consists of four parts:
 ### Film Holder and Advancer
 This is a series of 3D printed parts to hold the film in place and advance it past a lamp. To save time, I designed it without a base, and bolted each piece to a wooden board. Parts requiring a bit of accuracy were printed with a base. Partially inspired by the operation of a cassette, the film is advanced by a single sprocket, and rests on a series of rollers (or just plastic cylinders to aid alignment and tension).
 
-The single driving sprocket was designed around the stepper motor used (a cheap-ish Jaycar YM2754 I've had sitting around for years), which steps 7.5 degrees with each movement. Given that 8mm film sprocket holes are spaced 3.81 mm apart, the radius of the sprocket needs to be 29.106 mm. While the printer may not achieve this accuracy, the hope is any deviation causes a constant shift that can be countered later when cropping the photos.
+The single driving sprocket was designed around the stepper motor used (a cheap-ish Jaycar YM2754 I've had sitting around for years), which steps 7.5 degrees with each movement. Given that 8mm film perforations are spaced 3.81 mm apart, the radius of the sprocket needs to be 29.106 mm. While the printer may not achieve this accuracy, the hope is any deviation causes a constant shift that can be countered later when cropping the photos.
 
 For a lamp I used a battery powered LED lamp designed to be fitted to a camera horseshoe as kind of not-quite-ring lamp.
 
@@ -31,9 +31,9 @@ The camera's trigger socket is only a 2.5 mm TRS connection:
 By shorting T or R to S the camera will activate this function. With S connected to ground, T is "shorted" by enabling a 74HC126 tri-state buffer output. Otherwise the buffer is disabled and output in Hi-Z mode. Alternatively a 5V relay can be used.
 
 ### Aligning Photographs
-Prior to alignment, the photographs need to be cropped appropriately. I've done this either in Lightroom very quickly or by using ImageMagick:
+Prior to alignment, the photographs need to be cropped appropriately. I've done this either in Lightroom very quickly or by using ImageMagick (choosing a rough image size and start position):
 ```
-MAGICK COMMAND EXAMPLE HERE
+for f in *.tif; do convert -crop (resx)x(resy)+(xpos)+(ypos) +repage $f crop_$f; done
 ```
 
 This scanning system has a lot of bounce and shift. In an attempt to smooth it out, I tried the following to align the images:
@@ -44,13 +44,13 @@ This scanning system has a lot of bounce and shift. In an attempt to smooth it o
 
 The problem with the image programs is they're attempting to align the images in the 8mm frame, not the frame itself. For a moving camera film this is obviously not what we want.
 
-After trying these I sought a better solution and came upon [cpixip's Super-8 detector](https://github.com/cpixip/sprocket_detection). This was a fantastic program and I could not thank them enough for their work (check out [their work on Kinograph.cc](https://forums.kinograph.cc/u/cpixip/summary)), but a couple differences between Super-8 and 8mm meant this required some modification:
-* Super-8 sprocket holes are aligned with the centre of the image, 8mm is aligned with the top and bottom, meaning there are two holes per image (or rather, two halves)
+After trying these I sought a better solution and came upon [cpixip's Super-8 detector](https://github.com/cpixip/sprocket_detection). This was a fantastic program and I could not thank them enough for their hard work (check out [their profile on Kinograph.cc](https://forums.kinograph.cc/u/cpixip/summary)), but a couple differences between Super-8 and 8mm meant this required some modification:
+* Super-8 perforations are aligned with the centre of the image, 8mm is aligned with the top and bottom, meaning there are two holes per image (or rather, two halves)
 * The 8mm film I have has Kodak lettering along the edge, which throws the detector at times
 
-```
-IMAGE EXAMPLE HERE: 8MM FRAME + 8MM BAD FRAME + SUPER-8 FRAME
-```
+![A nice frame](003_Nice_Frame.jpg)
+
+![An annoying frame](004_K_Frame.jpg)
 
 I made the following changes to cpixip's code:
 * Implemented a function to loop through all images in a folder of a defined type (eg jpg, tif, etc)
@@ -58,47 +58,50 @@ I made the following changes to cpixip's code:
 * Flip the image if necessary (all my images were photographed backwards)
 * Adjustments to the "region of interest" to align with 8mm film
 * Removed the histogram smoothing (this tends to throw it off because of extra noise in the film header)
-* Resizes the canvas before moving the image (the sprocket hole offset meant the image was getting chopped off otherwise)
-* Does a second pass on images that have not been shifted (ie, no sprocket hole detected)
+* Resizes the canvas before moving the image (the perforation offset meant the image was getting chopped off otherwise)
+* Does a second pass on images that have not been shifted (ie, no perforation detected)
 * Loop through all output images and resize their canvases to match
 * Debug outputs:
-	* If second pass fails to detect the sprocket hole, it will save an image with the ROI rectangle drawn over it
+	* If second pass fails to detect the perforation, it will save an image with the ROI rectangle drawn over it
 	* If required, save the histogram plot (requires matplotlib)
 
 
 ### Outputting Video
-Now the out_* files are created, its a trival task to combine them with ffmpeg. You can use any codec you prefer, but here's an example for a easy uncompressed x264 video at 16 fps:
+Now the out_* files are created, its a trival task to combine them with ffmpeg. You can use any codec you prefer, but here's an example for a easy uncompressed x264 video at 16 fps (the standard framerate for amateur 8mm film):
 ```
-FFMPEG EXAMPLE HERE
+ffmpeg -framerate 16 -pattern_type glob -i '*.tif' -c:v libx264 -qp 0 -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" -pix_fmt yuv420p output.16fps.mp4
 ```
 
 Of course my video was reversed, so the output needs reversing too:
 ```
-FFMPEG EXAMPLE HERE
+ffmpeg -i output.16fps.mp4 -vf reverse -c:v libx264 -qp 0 reversed.mp4
 ```
 
-For additional smoothing with vidstab:
-```
-FFMPEG EXAMPLE HERE
-```
+Additional smoothing can be done with vidstab but I found it not worth it. There are plenty of online resources available for using ffmpeg and vidstab.
 
 ### Examples
-1. Screenshot of FreeCAD diagrams
-2. Copy of circuit diagram
-3. Photo of hardware setup
-4. Video/GIF: alignment example - vidstab
-6. Python script
-	1. Input image
-	2. Crop image
-	3. Sprocket rectangle sense
-	4. Output image
-	5. Video/GIF: output video
+![3D Parts](images/001_FreeCAD_Items.png)
+3D Parts in FreeCAD
+
+![Circuit Design](images/002_KiCAD_Schematic.png)
+Circuit Design in KiCAD
+
+![A mess](images/005_setup.jpg)
+Physical setup, experiencing continuous modification & improvement
+
+![Perforation detection and shifting](images/006_scaled_diagram.jpg)
+Detecting the perforations and shifting
+
+![Example final output](images/007_output.gif)
+Output, scaled down and trimmed and converted to a gif
+
+It is not a perfect solution, but it is good enough for now.
 
 ### Better Solutions
 If I had other reels to continue with, I'd like to eventually have the alignment issues solved by hardware instead of software. Possible solutions:
 * Just use an 8mm projector and modify it
 * Use a better stepper motor
-* Use a regular motor (with a few gear shifts to keep it turning slow) and an IR sensor to halt movement when the sprocket hole passes it
+* Use a regular motor (with a few gear shifts to keep it turning slow) and an IR sensor to halt movement when the perforation passes it
 
 Additional hardware changes that could be made:
 * Use a mirrorless camera, not a DSLR
