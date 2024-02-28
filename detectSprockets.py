@@ -211,7 +211,11 @@ if __name__ == '__main__':
         tic            = time.time()
 
         # flip images if necessary
-        if sys.argv[2] == 'flip':
+        try:
+            flipCheck = sys.argv[2]
+        except:
+            flipCheck = None
+        if flipCheck == 'flip':
             inputImg    = cv2.flip(inputImg, 1)
 
         # crop whitespace 

@@ -48,9 +48,11 @@ After trying these I sought a better solution and came upon [cpixip's Super-8 de
 * Super-8 perforations are aligned with the centre of the image, 8mm is aligned with the top and bottom, meaning there are two holes per image (or rather, two halves)
 * The 8mm film I have has Kodak lettering along the edge, which throws the detector at times
 
-![A nice frame](images/003_Nice_Frame.jpg)
+![A nice frame](images/003_Nice_Frame.jpg)\
+An easy frame to analyse
 
-![An annoying frame](images/004_K_Frame.jpg)
+![An annoying frame](images/004_K_Frame.jpg)\
+A more difficult frame to analyse
 
 I made the following changes to cpixip's code:
 * Implemented a function to loop through all images in a folder of a defined type (eg jpg, tif, etc)
@@ -65,6 +67,20 @@ I made the following changes to cpixip's code:
 	* If second pass fails to detect the perforation, it will save an image with the ROI rectangle drawn over it
 	* If required, save the histogram plot (requires matplotlib)
 
+#### Use
+```
+python detectSprockets.py [file format] [optional: flip]
+```
+
+eg. detect in tiffs, without flipping
+```
+python detectSprockets.py tiff
+```
+
+eg. detect in pngs, flip image
+```
+python detectSprockets.py png flip
+```
 
 ### Outputting Video
 Now the out_* files are created, its a trival task to combine them with ffmpeg. You can use any codec you prefer, but here's an example for a easy uncompressed x264 video at 16 fps (the standard framerate for amateur 8mm film):
@@ -79,21 +95,20 @@ ffmpeg -i output.16fps.mp4 -vf reverse -c:v libx264 -qp 0 reversed.mp4
 
 Additional smoothing can be done with vidstab but I found it not worth it. There are plenty of online resources available for using ffmpeg and vidstab.
 
-### Examples
-![3D Parts](images/001_FreeCAD_Items.png)
+### Schematics, Photographs, and Examples
+![3D Parts](images/001_FreeCAD_Items.png)\
 3D Parts in FreeCAD
 
-![Circuit Design](images/002_KiCAD_Schematic.png)
+![Circuit Design](images/002_KiCAD_Schematic.png)\
 Circuit Design in KiCAD
 
-![A mess](images/005_setup.jpg)
+![A mess](images/005_setup.jpg)\
 Physical setup, experiencing continuous modification & improvement
 
-![Perforation detection and shifting](images/006_scaled_diagram.jpg)
+![Perforation detection and shifting](images/006_scaled_diagram.jpg)\
 Detecting the perforations and shifting
 
-![Example final output](images/007_output.gif)
-
+![Example final output](images/007_output.gif)\
 Annnd final output, scaled down and trimmed and converted to a gif
 
 It is not a perfect solution, but it is good enough for now.
