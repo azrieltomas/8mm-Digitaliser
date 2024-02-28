@@ -48,9 +48,9 @@ After trying these I sought a better solution and came upon [cpixip's Super-8 de
 * Super-8 perforations are aligned with the centre of the image, 8mm is aligned with the top and bottom, meaning there are two holes per image (or rather, two halves)
 * The 8mm film I have has Kodak lettering along the edge, which throws the detector at times
 
-![A nice frame](003_Nice_Frame.jpg)
+![A nice frame](images/003_Nice_Frame.jpg)
 
-![An annoying frame](004_K_Frame.jpg)
+![An annoying frame](images/004_K_Frame.jpg)
 
 I made the following changes to cpixip's code:
 * Implemented a function to loop through all images in a folder of a defined type (eg jpg, tif, etc)
@@ -93,7 +93,8 @@ Physical setup, experiencing continuous modification & improvement
 Detecting the perforations and shifting
 
 ![Example final output](images/007_output.gif)
-Output, scaled down and trimmed and converted to a gif
+
+Annnd final output, scaled down and trimmed and converted to a gif
 
 It is not a perfect solution, but it is good enough for now.
 
