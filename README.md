@@ -1,9 +1,9 @@
 # 8mm-Digitaliser
 Hardware and software designs for the worlds worst 8mm film scanner
 
-After finding a reel of 8mm film I set out to try to digitise it. A quick attempt with my Epson v850 showed this was not a viable option, and a stubborn refusal to look online at anyone else's attempt led to this.
+After finding a reel of 8mm film I set out to try to digitise it. A quick attempt with my Epson v850 showed this was not a viable option, and a stubborn refusal to look online at anyone else's attempt (for a while) led to this.
 
-The basic design concept is the film is advanced frame by frame, as close as possible to exactly, and the frame is photographed by a digital camera.
+The basic design concept is to advance the film reel frame by frame, as close as possible to exactly, and photograph each frame with a digital camera.
 
 This project consists of four parts:
 * 3D printed parts for advancing the film
@@ -61,10 +61,10 @@ I made the following changes to cpixip's code:
 * Adjustments to the "region of interest" to align with 8mm film
 * Removed the histogram smoothing (this tends to throw it off because of extra noise in the film header)
 * Resizes the canvas before moving the image (the perforation offset meant the image was getting chopped off otherwise)
-* Does a second pass on images that have not been shifted (ie, no perforation detected)
+* Does multiple passes on images that have not been shifted (ie, no perforation detected)
 * Loop through all output images and resize their canvases to match
 * Debug outputs:
-	* If second pass fails to detect the perforation, it will save an image with the ROI rectangle drawn over it
+	* If additional passes fail to detect the perforation, it will save an image with the ROI rectangle drawn over it
 	* If required, save the histogram plot (requires matplotlib)
 
 #### Use
@@ -113,13 +113,23 @@ Annnd final output, scaled down and trimmed and converted to a gif
 
 It is not a perfect solution, but it is good enough for now.
 
+### Issues
+Aside from the obvious misalignment, the whole setup suffers as below:
+* Stepper motor generates too much heat and warps / softens the parts (even PETG)
+* Alignment jigs only align one dimension
+* Take up spool does not take up
+* Camera physical parts likely to wear out
+* Breadboard connections failed repeatedly
+
 ### Better Solutions
-If I had other reels to continue with, I'd like to eventually have the alignment issues solved by hardware instead of software. Possible solutions:
+While keeping costs down, the best overall option is to fix alignment issues in hardware rather than software
 * Just use an 8mm projector and modify it
 * Use a better stepper motor
 * Use a regular motor (with a few gear shifts to keep it turning slow) and an IR sensor to halt movement when the perforation passes it
+* Alternatively, the right shutter speeds and slow movement could keep the system turning continuously, with the sensor triggering the camera only
 
 Additional hardware changes that could be made:
 * Use a mirrorless camera, not a DSLR
-* Solder the controller (the breadboard had a lot of loose connections)
-* 3D print a better alignment jig - the ones I made had to be supplemented with a lot of tape
+* Solder the controller
+* 3D print a better alignment jig
+* Implement sound capture with magnetic tape head (where required)
