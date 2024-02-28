@@ -19,7 +19,7 @@ The single driving sprocket was designed around the stepper motor used (a cheap-
 For a lamp I used a battery powered LED lamp designed to be fitted to a camera horseshoe as kind of not-quite-ring lamp.
 
 ![3D Parts](images/001_FreeCAD_Items.png)\
-3D Parts in FreeCAD
+*3D Parts in FreeCAD*
 
 ### Stepping and Photographing
 The camera used is a Canon 200D MkII, fitted with a macro adaptor and 200 mm lens, but any camera with an external trigger and suitably powerful lens could be used.
@@ -34,10 +34,10 @@ The camera's trigger socket is only a 2.5 mm TRS connection:
 By shorting T or R to S the camera will activate this function. With S connected to ground, T is "shorted" by enabling a 74HC126 tri-state buffer output. Otherwise the buffer is disabled and output in Hi-Z mode. Alternatively a 5V relay can be used.
 
 ![Circuit Design](images/002_KiCAD_Schematic.png)\
-Circuit Design in KiCAD
+*Circuit Design in KiCAD*
 
 ![A mess](images/005_setup.jpg)\
-Physical setup, experiencing continuous modification & improvement
+*Physical setup, experiencing continuous modification & improvement*
 
 ### Aligning Photographs
 Prior to alignment, the photographs need to be cropped appropriately. I've done this either in Lightroom very quickly or by using ImageMagick (choosing a rough image size and start position):
@@ -58,13 +58,13 @@ After trying these I sought a better solution and came upon [cpixip's Super-8 de
 * The 8mm film I have has Kodak lettering along the edge, which throws the detector at times
 
 ![A nice frame](images/003_Nice_Frame.jpg)\
-An easy frame to analyse
+*An easy frame to analyse*
 
 ![An annoying frame](images/004_K_Frame.jpg)\
-A more difficult frame to analyse
+*A more difficult frame to analyse*
 
 ![Perforation detection and shifting](images/006_scaled_diagram.jpg)\
-Detecting the perforations and shifting
+*Detecting the perforations and shifting*
 
 I made the following changes to cpixip's code:
 * Implemented a function to loop through all images in a folder of a defined type (eg jpg, tif, etc)
@@ -108,7 +108,7 @@ ffmpeg -i output.16fps.mp4 -vf reverse -c:v libx264 -qp 0 reversed.mp4
 Additional smoothing can be done with vidstab but I found it not worth it. There are plenty of online resources available for using ffmpeg and vidstab.
 
 ![Example final output](images/007_output.gif)\
-a few seconds of the final output, scaled down and trimmed and converted to a gif
+*A few seconds of the final output, scaled down and trimmed and converted to a gif*
 
 It is not a perfect solution, but it is good enough for now.
 
