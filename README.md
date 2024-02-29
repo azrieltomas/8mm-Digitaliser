@@ -132,3 +132,6 @@ Additional hardware changes that could be made:
 * Solder the controller
 * 3D print a better alignment jig
 * Implement sound capture with magnetic tape head (where required)
+
+### Future
+With no more 8mm films to digitise, the better solutions are being implemented in the [16mm Digitialiser](https://github.com/azrieltomas/16mm-Digitaliser)
